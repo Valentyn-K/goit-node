@@ -1,4 +1,7 @@
 const joi = require("joi");
+const {
+  Types: { ObjectId },
+} = require("mongoose");
 
 const validateUserCreation = (req, res, next) => {
   console.log(req.body);
@@ -34,4 +37,12 @@ const validateContactUpdate = (req, res, next) => {
   next();
 };
 
-module.exports = { validateUserCreation, validateContactUpdate };
+const validateId = (req, res, next) => {
+  const { contactId } = req.params;
+  if (!ObjectId.isValid(contactId)) {
+    return res.status(400).send();
+  }
+  next();
+};
+
+module.exports = { validateUserCreation, validateContactUpdate, validateId };

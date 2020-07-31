@@ -97,10 +97,10 @@ async function updateContact(contactId, reqData) {
   return parseContacts[findedContactIndex];
 }
 
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-};
+// module.exports = {
+//   listContacts,
+//   getContactById,
+//   removeContact,
+//   addContact,
+//   updateContact,
+// };
