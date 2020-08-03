@@ -5,6 +5,7 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 
 const contactRouter = require("./api/contacts/contact-routs.js");
+const userRouter = require("./api/users/user-router.js");
 
 module.exports = class Server {
   constructor() {
@@ -31,6 +32,7 @@ module.exports = class Server {
 
   initRouts() {
     this.server.use("/api/contacts", contactRouter);
+    this.server.use("/user", userRouter);
   }
 
   async initDataBase() {

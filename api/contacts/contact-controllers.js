@@ -1,10 +1,30 @@
+const mongoosePaginate = require("mongoose-paginate-v2");
+
 const contactsModel = require("./contact.model.js");
 
 // @ GET /api/contacts
 const getContacts = async (req, res, next) => {
   try {
-    const contacts = await contactsModel.find();
-    await res.status(200).json(contacts);
+    const options = {
+      page: (req.query && req.query.page) || "1",
+      limit: (req.query && req.query.limit) || "10",
+      sort: { name: 1 },
+    };
+    console.log("req.query", req.query);
+    console.log("req.query.page", req.query.page);
+    console.log("req.query.limit", req.query.limit);
+    console.log("req.query.sub", req.query.sub);
+    let filteredBySubscription = null;
+
+    if (req.query && req.query.sub) {
+      filteredBySubscription = { subscription: req.query.sub };
+    }
+
+    const paginatedContactsList = await contactsModel.paginate(
+      { ...filteredBySubscription },
+      ...options
+    );
+    res.status(200).send(paginatedContactsList);
   } catch (err) {
     next(err);
   }
@@ -31,7 +51,6 @@ const createContact = async (req, res, next) => {
     const { name, email, phone } = req.body;
 
     const addedContact = await contactsModel.create(req.body);
-    // const addedContact = await addContact(name, email, phone);
     return await res.status(201).json(addedContact);
   } catch (err) {
     next(err);
@@ -46,8 +65,6 @@ const deleteContact = async (req, res, next) => {
 
     if (!removedContact)
       return await res.status(404).send({ message: "Not found" });
-    // if (!removedContact.deletedCount)
-    //   return await res.status(404).send({ message: "Not deleted" });
 
     return await res.status(200).json(removedContact);
   } catch (err) {
@@ -70,9 +87,6 @@ const updatingContact = async (req, res, next) => {
     console.log("updatedContact", updatedContact);
     if (!updatedContact)
       return await res.status(404).send({ message: "Not found" });
-    // if (!updatedContact.modifiedCount) {
-    //   return res.status(404).send({ message: "Not modified" });
-    // }
     return await res.status(200).json(updatedContact);
   } catch (err) {
     next(err);
