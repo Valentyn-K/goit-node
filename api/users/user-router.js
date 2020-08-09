@@ -1,4 +1,5 @@
 const { Router } = require("express");
+const { upload, minifyImage } = require("./user-avatars.js");
 
 const {
   registerUser,
@@ -7,6 +8,7 @@ const {
   checkToken,
   getCurrentUser,
   updateSubscription,
+  updateAvatar,
 } = require("./user-controllers.js");
 const {
   validateRegistration,
@@ -17,6 +19,12 @@ const {
 
 const userRouter = Router();
 
+userRouter.get("/current", checkToken, getCurrentUser);
+
+userRouter.post("/auth/register", validateRegistration, registerUser);
+
+userRouter.post("/auth/login", validateLogin, loginUser);
+
 userRouter.patch(
   "/",
   checkToken,
@@ -24,12 +32,13 @@ userRouter.patch(
   updateSubscription
 );
 
-userRouter.post("/auth/register", validateRegistration, registerUser);
-
-userRouter.post("/auth/login", validateLogin, loginUser);
-
 userRouter.patch("/auth/logout", checkToken, logoutUser);
 
-userRouter.get("/current", checkToken, getCurrentUser);
+userRouter.patch(
+  "/avatar",
+  upload.single("avatar") || upload.none(),
+  checkToken,
+  updateAvatar
+);
 
 module.exports = userRouter;

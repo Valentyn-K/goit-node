@@ -1,17 +1,22 @@
 const bcryptjs = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+// const imagemin = require("imagemin");
+// const imageminJpegtran = require("imagemin-jpegtran");
+// const imageminPngquant = require("imagemin-pngquant");
 
 const userModel = require("./user-model.js");
 const contactModel = require("../contacts/contact.model.js");
 const { prepareUserResponse } = require("../helpers/prepareUserResponse.js");
+const { avatarGenerator, minifyImage } = require("./user-avatars.js");
 
 const registerUser = async (req, res, next) => {
   try {
-    const { email, subscription, password } = req.body;
+    const { email, subscription, password, avatarURL } = req.body;
     const costFactor = 8;
     const hashedPassword = await bcryptjs.hash(password, costFactor);
     const existingUser = await userModel.findOne({ email });
+    const generatedAvatarURL = await avatarGenerator(req.body.email);
 
     if (existingUser) {
       return res.status(409).json({
@@ -22,11 +27,30 @@ const registerUser = async (req, res, next) => {
       email,
       subscription,
       password: hashedPassword,
+      avatarURL: generatedAvatarURL,
     });
 
     return res.status(200).json(prepareUserResponse([newUser]));
   } catch (error) {
     next(error);
+  }
+};
+
+const updateAvatar = async (req, res, next) => {
+  try {
+    // const img = await minifyImage(req.file.path);
+    // console.log("img", img);
+    console.log("req.file.path", req.file.path);
+    const path = `http://localhost:${process.env.PORT}/images/${req.file.filename}`;
+    console.log("path", path);
+    const authorizationHeader = req.get("Authorization") || "";
+    const token = authorizationHeader.replace("Bearer ", "");
+    const userId = await jwt.verify(token, process.env.JWT_SECRET).id;
+    await userModel.findByIdAndUpdate(userId, { $set: { avatarURL: path } });
+
+    res.status(200).send({ avatarURL: path });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -171,4 +195,5 @@ module.exports = {
   updateSubscription,
   addContactForUser,
   deleteContactForUser,
+  updateAvatar,
 };
