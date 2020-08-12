@@ -14,6 +14,13 @@ const userSchema = new Schema({
   },
   token: { type: String, required: false },
   contactsId: [{ type: ObjectId, ref: "Contact" }],
+  verificationToken: { type: String, required: false },
+  verificationStatus: {
+    type: String,
+    required: true,
+    enum: ["Verified", "Created"],
+    default: "Created",
+  },
 });
 const userModel = mongoose.model("User", userSchema);
 
