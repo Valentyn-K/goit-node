@@ -1,10 +1,55 @@
+require("dotenv").config();
+const sgMail = require("@sendgrid/mail");
 const bcryptjs = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
+// var sgMail = require("sendgrid");
+
+const uuid = require("uuid");
 
 const userModel = require("./user-model.js");
 const contactModel = require("../contacts/contact.model.js");
 const { prepareUserResponse } = require("../helpers/prepareUserResponse.js");
+const { findByIdAndUpdate, findOne } = require("./user-model.js");
+
+const createVarificationToken = (userId, varificationToken) => {
+  return userModel.findByIdAndUpdate(
+    userId,
+    { varificationToken },
+    { new: true }
+  );
+};
+
+const sendVarificationEmail = async (newUser) => {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log("process.env.SENDGRID_API_KEY", process.env.SENDGRID_API_KEY);
+  const verificationToken = uuid.v4();
+  await createVarificationToken(newUser._id, verificationToken);
+  await sgMail.send({
+    to: newUser.email,
+    from: "valentyn.k.911@gmail.com",
+    subject: "Sending with Twilio SendGrid is Fun",
+    text: "and easy to do anywhere, even with Node.js",
+    html: `<a href="http://localhost:3000/user/auth/verify/${verificationToken}">Verify registration</a>`,
+  });
+};
+
+const verifiEmail = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const userToVerify = await userModel.findOne({ verificationToken });
+    if (!userToVerify) {
+      res.status(404).send("Not found");
+    }
+    await userModel.findByIdAndUpdate(
+      userToVerify._id,
+      { status: "Verified", varificationToken: null },
+      { new: true }
+    );
+    res.status(200).send("You are successfully verified");
+  } catch (error) {
+    next(error);
+  }
+};
 
 const registerUser = async (req, res, next) => {
   try {
@@ -24,6 +69,8 @@ const registerUser = async (req, res, next) => {
       password: hashedPassword,
     });
 
+    await sendVarificationEmail(newUser);
+
     return res.status(200).json(prepareUserResponse([newUser]));
   } catch (error) {
     next(error);
@@ -32,7 +79,7 @@ const registerUser = async (req, res, next) => {
 
 const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, status } = req.body;
 
     const findedUser = await userModel.findOne({ email });
 
@@ -41,7 +88,7 @@ const loginUser = async (req, res, next) => {
       findedUser.password
     );
 
-    if (!findedUser || !isPasswordValid) {
+    if (!findedUser || !isPasswordValid || status !== "Verified") {
       return res.status(201).send("Email or password is wrong");
     }
 
@@ -171,4 +218,5 @@ module.exports = {
   updateSubscription,
   addContactForUser,
   deleteContactForUser,
+  verifiEmail,
 };
